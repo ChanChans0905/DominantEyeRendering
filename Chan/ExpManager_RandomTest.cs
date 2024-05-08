@@ -17,13 +17,14 @@ public class ExpManager_RandomTest : MonoBehaviour
     [SerializeField] ImageController IC;
     public int[] ConditionList = new int[4];
     public int[] ConditionOrder = new int[10];
+    public int[] DominantEye = new int[10];
     public int ImageOrder;
     public float TaskTimer;
     public int PlayerAnswer;
     public int IsCorrect; // 사용자 선택이 정답인지 아닌지
     bool Term_InputAnswer; // 사용자 입력 가능 시기
     public int TaskCount, ConditionCount, RepetitionCount;
-    public GameObject Notice_OpenImage; // 각 이미지 '1번입니다, 2번입니다' 안내
+    public GameObject Notice_OpenFirstImage, Notice_OpenSecondImage; // 각 이미지 '1번입니다, 2번입니다' 안내
     public bool Term_RT_ProceedTask;
     public float AnsweringTimer;
     bool Term_AddAnsweringTimer;
@@ -32,6 +33,7 @@ public class ExpManager_RandomTest : MonoBehaviour
     public TextMeshProUGUI Num_C, Num_T, Num_R;
     public bool BlockEnd_RandomTest;
     public bool IsRestTime;
+    public GameObject Notice_SelectAnswer;
 
     void Start()
     {
@@ -39,10 +41,13 @@ public class ExpManager_RandomTest : MonoBehaviour
 
         // 0. Static1, 1. Static2, 2. Dynamic1, 3. Dynamic2 
         ConditionList = new int[] { 0, 1, 2, 3 };
-        //ShuffleArray(ConditionList);
+        ShuffleArray(ConditionList);
 
         ConditionOrder = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
         ShuffleArray(ConditionOrder);
+
+        DominantEye = new int[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
+        ShuffleArray(DominantEye);
     }
 
     void Update()
@@ -80,16 +85,35 @@ public class ExpManager_RandomTest : MonoBehaviour
             }
 
             if (TaskTimer < 1.5f)
-                Notice_OpenImage.SetActive(true);
+                Notice_OpenFirstImage.SetActive(true);
             else
-                Notice_OpenImage.SetActive(false);
+                Notice_OpenFirstImage.SetActive(false);
         }
         else if (TaskTimer > 2f && TaskTimer < 12f)
-            IC.RT_TurnOnImage();
+        {
+            if (ImageOrder == 0)
+                IC.RT_TurnOnImage();
+            else if (ImageOrder == 1)
+                IC.RT_TurnOnOriginalImage();
+        }
         else if (TaskTimer > 12f && TaskTimer < 12.5f)
             IC.RT_TurnOffImage();
-        else if (TaskTimer > 12.5)
+        else if (TaskTimer > 12.5f && TaskTimer < 14f)
+            if (TaskTimer < 13.5f)
+                Notice_OpenSecondImage.SetActive(true);
+            else
+                Notice_OpenSecondImage.SetActive(false);
+        else if (TaskTimer > 14f && TaskTimer < 24f)
         {
+            if (ImageOrder == 0)
+                IC.RT_TurnOnOriginalImage();
+            else if (ImageOrder == 1)
+                IC.RT_TurnOnImage();
+        }
+        else if (TaskTimer > 24f)
+        {
+            Notice_SelectAnswer.SetActive(true);
+            IC.RT_TurnOffImage();
             Term_RT_ProceedTask = false;
             Term_InputAnswer = true;
             Term_AddAnsweringTimer = true;
@@ -120,8 +144,9 @@ public class ExpManager_RandomTest : MonoBehaviour
         else
             IsCorrect = 0;
 
+        Notice_SelectAnswer.SetActive(false);
         CSV_P_RT.Save_CSV_Processed();
-        TaskCount++;
+        TaskCount += 10;
         ResetAfterEachTask();
 
         if (TaskCount < 10)
@@ -131,6 +156,7 @@ public class ExpManager_RandomTest : MonoBehaviour
             RepetitionCount++;
             TaskCount = 0;
 
+            ShuffleArray(DominantEye);
             ShuffleArray(ConditionOrder);
 
             if (RepetitionCount == 1)

@@ -24,7 +24,7 @@ public class CSV_Save_Processed_ST : MonoBehaviour
         PlayerData[1] = ST.RepetitionCount;
         PlayerData[2] = ST.SliderCount;
         PlayerData[3] = ST.TotalTestTime;
-        PlayerData[4] = ST.DominantEye;
+        PlayerData[4] = ST.DominantEye; // 0원본왼쪽, 1원본오른쪽
         AppendToCsv(PlayerData);
     }
 

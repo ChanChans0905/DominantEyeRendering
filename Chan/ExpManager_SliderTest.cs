@@ -57,25 +57,13 @@ public class ExpManager_SliderTest : MonoBehaviour
         }
     }
 
-    // public void SetSliderTestCondition()
-    // {
-    //     // foreach (float value in RT.LastFiveAnswers)
-    //     //     RT_AverageFRS += value;
-
-    //     // ST_MinimumFRS = RT_AverageFRS / 5;
-
-    //     User.CameraFOV = 20;
-    // }
-
     void AdjustFoveation()
     {
-        Debug.Log("RT 컨디션 : " + RT.ConditionList[RT.ConditionCount]);
-
         if (ThresholdTimer >= 0.3f)
         {
             if (Input.GetKeyDown(KeyCode.Alpha3))
             {
-                if (SliderCount < 29)
+                if (SliderCount < 4)
                 {
                     IC.ST_TurnOnOffImage(false, SliderCount);
                     SliderCount++;
@@ -133,7 +121,6 @@ public class ExpManager_SliderTest : MonoBehaviour
 
     void MoveToNextTask()
     {
-        // 주시안, 보조시안 지정
         DominantEye = (DominantEye == 0) ? 1 : 0;
 
         ThresholdTimer += Time.deltaTime;

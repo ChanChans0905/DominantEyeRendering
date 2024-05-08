@@ -17,8 +17,8 @@ public class UserGazePostionAndAdjustFOV : MonoBehaviour
 
     void FixedUpdate()
     {
-        // // Dynamic Foveated Rendering ( + Eye Tracking )
-        // transform.LookAt(GazeTarget);
+        // Dynamic Foveated Rendering ( + Eye Tracking )
+        transform.LookAt(GazeTarget);
 
         if (Physics.Raycast(transform.position, transform.forward, out hit) && hit.collider.CompareTag("2D_Screen"))
         {
