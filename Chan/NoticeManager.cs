@@ -1,198 +1,117 @@
 using System.Collections;
 using System.Collections.Generic;
+using Palmmedia.ReportGenerator.Core.Reporting.Builders;
 using TMPro;
 using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class NoticeManager : MonoBehaviour
 {
-    [SerializeField] ExpManager_SliderTest ST;
-    [SerializeField] ExpManager_RandomTest RT;
-    [SerializeField] CSV_Save_Processed_RT CSV_P_RT;
-    [SerializeField] CSV_Save_Processed_ST CSV_P_ST;
-    [SerializeField] CSV_Save_Raw CSV_R;
-    [SerializeField] ImageController IC;
+    [SerializeField] EXP_Manager EXPM;
+    [SerializeField] CSV_Manager CSV;
+
     public GameObject Notice_SelectSample, Notice_Welcome, Notice_GameStart;
-    public GameObject Notice_ST_BreakStart, Notice_ST_Start;
-    public GameObject Notice_RT_BreakStart, Notice_RT_Start, Notice_RT_MiddleBreakStart;
     public TextMeshProUGUI Text_SampleNumber;
-    float ThresholdTimer;
-    public int SampleNumber;
-    int Next;
-    bool Term_SelectSampleNumber, Term_ExpStart;
-    public bool Term_Notice_NewCondition;
-    public bool Term_BreakTime;
-    float BreakTimer;
+    public GameObject Notice_RT_Start, Notice_ST_Start;
+    public GameObject Notice_RT_OpenFirstMedia, Notice_RT_OpenSecondMedia;
+    public GameObject Notice_RT_SelectAnswer, Notice_RT_Wait;
+    public GameObject Notice_ST_MaxSliderCount, Notice_ST_MinSliderCount;
+    public GameObject Notice_ST_TaskEnded;
+    public GameObject BlackScreen;
+    public GameObject Notice_UserGazeOutOfScreen;
+    public GameObject Notice_BreakStart;
+    public GameObject Notice_ExpEnd;
 
-    void Start()
+
+    public IEnumerator UserGazeOutOfScreen()
     {
-        ResetAtStart();
+        Notice_UserGazeOutOfScreen.SetActive(true);
+        yield return new WaitForSeconds(1.5f);
+        Notice_UserGazeOutOfScreen.SetActive(false);
+        yield break;
     }
 
-    void Update()
+    public IEnumerator SelectSampleNumber()
     {
-        if (Term_SelectSampleNumber)
-            SelectSampleNumber();
-
-        if (Term_ExpStart)
-            ExpStart();
-
-        if (Term_BreakTime)
-            BreakTime();
-
-        if (Term_Notice_NewCondition)
-            Notice_NewCondition();
-    }
-
-    void SelectSampleNumber()
-    {
-        ThresholdTimer += Time.deltaTime;
-
-        if (ThresholdTimer > 0.3f)
+        while (true)
         {
             if (Input.GetKeyDown(KeyCode.Alpha3))
             {
-                SampleNumber++;
-                ThresholdTimer = 0;
+                EXPM.SampleNumber++;
+                yield return new WaitForSeconds(0.3f);
             }
-            else if (Input.GetKeyDown(KeyCode.Alpha1) && SampleNumber > 0)
+            else if (Input.GetKeyDown(KeyCode.Alpha1) && EXPM.SampleNumber > 0)
             {
-                SampleNumber--;
-                ThresholdTimer = 0;
+                EXPM.SampleNumber--;
+                yield return new WaitForSeconds(0.3f);
             }
             else if (Input.GetKeyDown(KeyCode.Alpha2))
             {
-                Term_ExpStart = true;
-                Term_SelectSampleNumber = false;
                 Notice_SelectSample.SetActive(false);
                 Notice_Welcome.SetActive(true);
-                ThresholdTimer = 0;
-                CSV_P_RT.New_CSV_File();
-                CSV_P_ST.New_CSV_File();
+                // rt, st 각각 raw 파일이랑 processed 파일 생성해야 함.
+                CSV.CreateCSV();
+                yield return new WaitForSeconds(2f);
+                Notice_Welcome.SetActive(false);
+                Notice_GameStart.SetActive(true);
+
+                yield return new WaitForSeconds(2f);
+                Notice_GameStart.SetActive(false);
+                EXPM.Porcess_NoticingNewCondition = true;
+                EXPM.Process_RT = true;
+                yield break;
             }
-            Text_SampleNumber.text = SampleNumber.ToString();
+            Text_SampleNumber.text = EXPM.SampleNumber.ToString();
         }
     }
 
-    void ExpStart()
+    public IEnumerator BreakTime()
     {
-        ThresholdTimer += Time.deltaTime;
+        EXPM.Process_BreakTime = false;
 
-        if (ThresholdTimer > 0.1f && Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            Next++;
-            ThresholdTimer = 0;
+        Notice_BreakStart.SetActive(true);
+        yield return new WaitForSeconds(3f);
+        Notice_BreakStart.SetActive(false);
+        EXPM.Porcess_NoticingNewCondition = true;
 
-            switch (Next)
-            {
-                case 1:
-                    Notice_Welcome.SetActive(false);
-                    Notice_GameStart.SetActive(true);
-                    break;
+        // ST 끝나면 다음 시나리오로 넘어가기
+        if (EXPM.Process_ST)
+            EXPM.ScenarioCount++;
 
-                case 2:
-                    Notice_GameStart.SetActive(false);
-                    Term_Notice_NewCondition = true;
-                    Term_ExpStart = false;
-                    break;
-            }
-        }
+        EXPM.Process_RT = !EXPM.Process_RT;
+        EXPM.Process_ST = !EXPM.Process_ST;
+
+        yield break;
     }
 
-    void BreakTime()
+    public IEnumerator NewCondition()
     {
-        BreakTimer += Time.deltaTime;
+        EXPM.Porcess_NoticingNewCondition = false;
 
-        if (RT.Term_RandomTest) // RT 쉬는 시간
+        while (true)
         {
-            if (RT.BlockEnd_RandomTest) // RT 종류 후 쉬는 시간
+            if (EXPM.Process_RT)
+                Notice_ST_Start.SetActive(true);
+            else if (EXPM.Process_ST)
+                Notice_RT_Start.SetActive(true);
+
+            yield return new WaitForSeconds(1.5f);
+            if (Input.GetKeyDown(KeyCode.Alpha2))
             {
-                if (BreakTimer < 3)
-                    Notice_RT_BreakStart.SetActive(true);
-                else
+                if (EXPM.Process_RT)
                 {
-                    Notice_RT_BreakStart.SetActive(false);
-                    BreakTimer = 0;
-                    Term_BreakTime = false;
-                    RT.Term_RandomTest = false;
-                    ST.Term_SliderTest = true;
-                    Term_Notice_NewCondition = true;
-                    RT.BlockEnd_RandomTest = false;
+                    Notice_RT_Start.SetActive(false);
+                    EXPM.Process_RT_ProceedTask = true;
                 }
-            }
-            else // RT 중간 쉬는 시간
-            {
-                if (BreakTimer < 3)
-                    Notice_RT_MiddleBreakStart.SetActive(true);
-                else
+                else if (EXPM.Process_ST)
                 {
-                    Notice_RT_MiddleBreakStart.SetActive(false);
-                    BreakTimer = 0;
-                    Term_BreakTime = false;
-                    RT.Term_RT_ProceedTask = true;
+                    Notice_ST_Start.SetActive(false);
+                    EXPM.Process_ST_ProceedTask = true;
                 }
-            }
-        }
-        else if (ST.Term_SliderTest) // ST 쉬는 시간
-        {
-            if (BreakTimer < 3)
-                Notice_ST_BreakStart.SetActive(true);
-            else
-            {
-                Notice_ST_BreakStart.SetActive(false);
-                BreakTimer = 0;
-                Term_BreakTime = false;
-                ST.Term_SliderTest = false;
-                RT.Term_RandomTest = true;
-                Term_Notice_NewCondition = true;
-                RT.ConditionCount++;
+                yield break;
             }
         }
     }
 
-    void Notice_NewCondition()
-    {
-        ThresholdTimer += Time.deltaTime;
-
-        if (RT.Term_RandomTest)
-        {
-            Notice_RT_Start.SetActive(true);
-
-            if (Input.GetKeyDown(KeyCode.Alpha2) && ThresholdTimer > 1.5f)
-            {
-                Notice_RT_Start.SetActive(false);
-                RT.Term_RT_ProceedTask = true;
-                Term_Notice_NewCondition = false;
-                ThresholdTimer = 0;
-            }
-        }
-        else if (ST.Term_SliderTest)
-        {
-            Notice_ST_Start.SetActive(true);
-
-            if (Input.GetKeyDown(KeyCode.Alpha2) && ThresholdTimer > 1.5f)
-            {
-                Notice_ST_Start.SetActive(false);
-                ST.DominantEye = Random.Range(0, 2);
-                IC.ST_TurnOnOffImage(true, ST.SliderCount);
-                ST.Term_ST_ProceedTask = true;
-                Term_Notice_NewCondition = false;
-                ThresholdTimer = 0;
-            }
-        }
-    }
-
-    void ResetAtStart()
-    {
-        ThresholdTimer = 0;
-        SampleNumber = 0;
-        BreakTimer = 0;
-        Next = 0;
-        Term_ExpStart = false;
-        Term_Notice_NewCondition = false;
-        Term_BreakTime = false;
-        Term_SelectSampleNumber = true;
-    }
 }
